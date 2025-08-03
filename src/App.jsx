@@ -1,13 +1,34 @@
-import "./App.css";
+// App.jsx
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import Login from './pages/Login';
+import Users from './pages/Users';
+import Results from './pages/Results';
+import Layout from './pages/Layout';
+import useAuth from './store/auth';
 
-function App() {
-  return (
-    <main className="flex justify-center gap-4 flex-col min-h-screen">
-      <h1 className="text-3xl text-center font-bold underline">React & Tailwind CSS Starter Pack</h1>
-      <p className="text-center text-xl">This is a starter pack for React & Tailwind CSS projects.</p>
-      <img src="https://bit.ly/3wsmzTy" alt="meme" className="mx-auto" />
-    </main>
-  );
+function ProtectedRoute({ children }) {
+  const { token } = useAuth();
+  return token ? children : <Navigate to="/" />;
 }
 
-export default App;
+export default function App() {
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Login />} />
+
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Layout />
+            </ProtectedRoute>
+          }
+        >
+          <Route path="users" element={<Users />} />
+          <Route path="results" element={<Results />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
+}

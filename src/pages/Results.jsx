@@ -1,14 +1,9 @@
-// src/pages/Results.jsx
 import { useEffect, useState } from 'react';
 import API from '../services/api';
-import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-} from 'recharts';
+import { FiSearch } from 'react-icons/fi';
+import { PieChart, Pie, Cell, Tooltip } from 'recharts';
 
-const COLORS = ['#82ca9d', '#f87171'];
+const COLORS = ['#3b82f6', '#f87171'];
 
 const typeLabels = {
   '0': 'Accuracy Abacus',
@@ -16,160 +11,127 @@ const typeLabels = {
   '2': 'Speed',
 };
 
+const typeBadgeColors = {
+  '0': 'bg-blue-50 text-blue-700',
+  '1': 'bg-purple-50 text-purple-700',
+  '2': 'bg-orange-50 text-orange-700',
+};
+
 export default function Results() {
   const [results, setResults] = useState([]);
-  const [formData, setFormData] = useState({
-    name: '',
-    type: '',
-    correct: '',
-    wrong: '',
-  });
   const [search, setSearch] = useState('');
-
-  const fetchResults = async () => {
-    const res = await API.get('/result');
-    setResults(res.data);
-  };
+  const [typeFilter, setTypeFilter] = useState('');
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchResults();
+    API.get('/result')
+      .then((res) => setResults(res.data))
+      .finally(() => setLoading(false));
   }, []);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    const { name, type, correct, wrong } = formData;
-    if (!name || type === '' || correct === '' || wrong === '') return;
-
-    await API.post('/result', {
-      name,
-      type,
-      correct: Number(correct),
-      wrong: Number(wrong),
-    });
-
-    setFormData({ name: '', type: '', correct: '', wrong: '' });
-    fetchResults();
-  };
-
-  const filtered = results.filter(
-    (r) =>
+  const filtered = results.filter((r) => {
+    const matchSearch =
       r.name.toLowerCase().includes(search.toLowerCase()) ||
-      typeLabels[r.type]?.toLowerCase().includes(search.toLowerCase())
-  );
+      (typeLabels[r.type] || '').toLowerCase().includes(search.toLowerCase());
+    const matchType = typeFilter === '' || r.type === typeFilter;
+    return matchSearch && matchType;
+  });
 
   return (
-    <div className="p-6 space-y-8 bg-gray-100 min-h-screen">
-      <h1 className="text-3xl font-bold text-center">Dashboard</h1>
+    <div className="space-y-6">
+      <div>
+        <h2 className="text-xl font-semibold text-gray-800">Results</h2>
+        <p className="text-sm text-gray-400 mt-0.5">{results.length} total exam results</p>
+      </div>
 
-      {/* <form
-        onSubmit={handleSubmit}
-        className="space-y-4 bg-white p-6 rounded-lg shadow-md"
-      >
-        <div className="grid md:grid-cols-4 gap-4">
-          <input
-            type="text"
-            placeholder="Name"
-            value={formData.name}
-            onChange={(e) =>
-              setFormData({ ...formData, name: e.target.value })
-            }
-            className="border p-2 rounded w-full"
-          />
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+        {/* Filters */}
+        <div className="px-6 py-4 border-b border-gray-100 flex flex-wrap gap-3 items-center">
+          <div className="relative">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Search by name..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-9 pr-4 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 w-56"
+            />
+          </div>
           <select
-            value={formData.type}
-            onChange={(e) =>
-              setFormData({ ...formData, type: e.target.value })
-            }
-            className="border p-2 rounded w-full"
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="border border-gray-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white text-gray-700"
           >
-            <option value="">Select Type</option>
+            <option value="">All Types</option>
             <option value="0">Accuracy Abacus</option>
             <option value="1">Accuracy Mentally</option>
             <option value="2">Speed</option>
           </select>
-          <input
-            type="number"
-            placeholder="Correct"
-            value={formData.correct}
-            onChange={(e) =>
-              setFormData({ ...formData, correct: e.target.value })
-            }
-            className="border p-2 rounded w-full"
-          />
-          <input
-            type="number"
-            placeholder="Wrong"
-            value={formData.wrong}
-            onChange={(e) =>
-              setFormData({ ...formData, wrong: e.target.value })
-            }
-            className="border p-2 rounded w-full"
-          />
         </div>
-        <button
-          type="submit"
-          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded"
-        >
-          Submit Result
-        </button>
-      </form> */}
 
-      {/* Search */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between">
-        <input
-          type="text"
-          placeholder="Search by name or type"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="mt-2 md:mt-0 border p-2 rounded w-full md:w-64"
-        />
-      </div>
-
-      {/* Table */}
-      <div className="overflow-x-auto">
-        <table className="min-w-full bg-white rounded shadow text-sm">
-          <thead>
-            <tr className="bg-gray-200 text-left">
-              <th className="p-3">Name</th>
-              <th className="p-3">Type</th>
-              <th className="p-3">Correct / Wrong</th>
-              <th className="p-3">Chart</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((res, idx) => {
-              const chartData = [
-                { name: 'Correct', value: res.correct },
-                { name: 'Wrong', value: res.wrong },
-              ];
-              return (
-                <tr key={idx} className="border-t">
-                  <td className="p-3">{res.name}</td>
-                  <td className="p-3">{typeLabels[res.type]}</td>
-                  <td className="p-3">
-                    ✅ {res.correct} / ❌ {res.wrong}
-                  </td>
-                  <td className="p-3">
-                    <PieChart width={80} height={80}>
-                      <Pie
-                        data={chartData}
-                        dataKey="value"
-                        cx="50%"
-                        cy="50%"
-                        outerRadius={30}
-                      >
-                        {chartData.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip />
-                    </PieChart>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
+        {loading ? (
+          <div className="p-10 text-center text-gray-400 text-sm">Loading...</div>
+        ) : filtered.length === 0 ? (
+          <div className="p-10 text-center text-gray-400 text-sm">No results found.</div>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="text-left text-xs text-gray-400 uppercase tracking-wide bg-gray-50 border-b border-gray-100">
+                <th className="px-6 py-3">Name</th>
+                <th className="px-6 py-3">Type</th>
+                <th className="px-6 py-3">Score</th>
+                <th className="px-6 py-3">Accuracy</th>
+                <th className="px-6 py-3">Chart</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-50">
+              {filtered.map((res, idx) => {
+                const total = (res.correct || 0) + (res.wrong || 0);
+                const pct = total > 0 ? Math.round((res.correct / total) * 100) : 0;
+                const chartData = [
+                  { name: 'Correct', value: res.correct || 0 },
+                  { name: 'Wrong', value: res.wrong || 0 },
+                ];
+                return (
+                  <tr key={idx} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4 font-medium text-gray-800">{res.name}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${typeBadgeColors[res.type] || 'bg-gray-100 text-gray-600'}`}>
+                        {typeLabels[res.type] || res.type}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className="text-green-600 font-semibold">{res.correct}</span>
+                      <span className="text-gray-300 mx-1">/</span>
+                      <span className="text-red-400 font-semibold">{res.wrong}</span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-2">
+                        <div className="w-20 bg-gray-100 rounded-full h-1.5">
+                          <div
+                            className="bg-blue-500 h-1.5 rounded-full"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <span className="text-xs font-semibold text-gray-600">{pct}%</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4">
+                      <PieChart width={60} height={60}>
+                        <Pie data={chartData} dataKey="value" cx="50%" cy="50%" outerRadius={25}>
+                          {chartData.map((_, i) => (
+                            <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip />
+                      </PieChart>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   );

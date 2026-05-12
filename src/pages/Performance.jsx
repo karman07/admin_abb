@@ -121,10 +121,6 @@ export default function Performance() {
     });
   };
 
-  const addField = () => {
-    setNewEntry((prev) => ({ ...prev, newField: '' }));
-  };
-
   const commitAdd = () => {
     if (!newKey.trim()) return;
     setLevelData((prev) => ({ ...prev, [newKey.trim()]: { ...newEntry } }));

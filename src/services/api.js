@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 const API = axios.create({
-  baseURL: 'http://localhost:3000', // Adjust if needed
+  baseURL: 'https://abacus-comp-new.vercel.app', // Adjust if needed
 });
 
 console.log("hi")
